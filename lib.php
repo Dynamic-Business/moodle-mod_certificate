@@ -319,3 +319,77 @@ function certificate_get_view_actions() {
 function certificate_get_post_actions() {
     return array('received');
 }
+
+// For accreditations
+function certificate_archive_completion($userid, $courseid) {
+    global $DB,$CFG;
+
+    require_once($CFG->dirroot.'/mod/certificate/locallib.php');
+
+    $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+    $completion = new acc_completion_info($course);
+
+    $sql = "SELECT ci.*
+              FROM {certificate_issues} ci
+              JOIN {certificate} c ON c.id = ci.certificateid AND c.course = :courseid
+             WHERE ci.userid = :userid";
+
+    if ($certs = $DB->get_records_sql($sql, array('userid' => $userid, 'courseid' => $courseid))) {
+        foreach ($certs as $cert) {
+            $certificate = $DB->get_record('certificate', array('id' => $cert->certificateid), '*', MUST_EXIST);
+
+            $data = clone $cert;
+            $data->timearchived = time();
+            $data->oldid = $cert->id; // Not sure if this is needed but might be useful if there is a data issue later on
+            $data->timecompleted = certificate_get_date_completed($certificate, $cert, $course, $userid);
+            $data->grade = certificate_get_grade($certificate, $course, $userid);
+
+            $newid = $DB->insert_record('certificate_issues_history', $data, true);
+            if ($newid) {
+                $course_module = get_coursemodule_from_instance('certificate', $cert->certificateid, $course->id);
+
+                // Reset viewed
+                $completion->set_module_viewed_reset($course_module, $userid);
+                // And reset completion, in case viewed is not a required condition
+                $completion->update_state($course_module, COMPLETION_INCOMPLETE, $userid);
+
+                // Delete original
+                $DB->delete_records('certificate_issues', array('id' => $cert->id));
+            }
+        }
+        // $completion->invalidatecache($courseid, $userid, true);
+    }
+    return true;
+}
+
+/**
+ * Returns the date the certificate was completed for the archive record
+ *
+ * @param stdClass $certificate certificate record
+ * @param stdClass $certrecord certificate history record
+ * @param stdClass $course course record
+ * @param int $userid userid
+ */
+function certificate_get_date_completed($certificate, $certrecord, $course, $userid) {
+    global $DB;
+    // Set certificate date to current time, can be overwritten later
+    $date = $certrecord->timecreated;
+
+    if ($certificate->printdate == '2') {
+        // Get the enrolment end date
+        $sql = "SELECT MAX(c.timecompleted) as timecompleted
+                  FROM {course_completions} c
+                 WHERE c.userid = :userid
+                       AND c.course = :courseid";
+        if ($timecompleted = $DB->get_record_sql($sql, array('userid' => $userid, 'courseid' => $course->id))) {
+            if (!empty($timecompleted->timecompleted)) {
+                $date = $timecompleted->timecompleted;
+            }
+        }
+    } else if ($certificate->printdate > 2) {
+        if ($modinfo = certificate_get_mod_grade($course, $certificate->printdate, $userid)) {
+            $date = $modinfo->dategraded;
+        }
+    }
+    return $date;
+}
