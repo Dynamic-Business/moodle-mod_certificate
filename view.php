@@ -31,6 +31,7 @@ require_once("$CFG->libdir/pdflib.php");
 $id = required_param('id', PARAM_INT);    // Course Module ID
 $action = optional_param('action', '', PARAM_ALPHA);
 $edit = optional_param('edit', -1, PARAM_BOOL);
+$certslist = optional_param('certslist', FALSE,PARAM_BOOL); // allows to bypass login check (wich checks to see if course is availableto user) so can be accessed on hidden courses
 
 if (!$cm = get_coursemodule_from_id('certificate', $id)) {
     print_error('Course Module ID was incorrect');
@@ -42,7 +43,10 @@ if (!$certificate = $DB->get_record('certificate', array('id'=> $cm->instance)))
     print_error('course module is incorrect');
 }
 
-require_login($course, false, $cm);
+// Allows access to the certificate despite course being hidden.
+if(!$certslist){
+    require_login($course, false, $cm);
+}
 $context = context_module::instance($cm->id);
 require_capability('mod/certificate:view', $context);
 
