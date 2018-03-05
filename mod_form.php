@@ -123,7 +123,8 @@ class mod_certificate_mod_form extends moodleform_mod {
         $mform->setDefault('printteacher', 0);
         $mform->addHelpButton('printteacher', 'printteacher', 'certificate');
 
-        $mform->addElement('textarea', 'customtext', get_string('customtext', 'certificate'), array('cols'=>'40', 'rows'=>'4', 'wrap'=>'virtual'));
+        $mform->addElement('editor', 'customtext', get_string('customtext', 'certificate'), (array('subdirs'=>0, 'maxbytes'=>0, 'maxfiles'=>0, 'changeformat'=>0, 'context'=>null, 'noclean'=>0,
+        'trusttext'=>0,'enable_filemanagement' => false)));
         $mform->setType('customtext', PARAM_RAW);
         $mform->addHelpButton('customtext', 'customtext', 'certificate');
 
