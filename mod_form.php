@@ -183,4 +183,13 @@ class mod_certificate_mod_form extends moodleform_mod {
 
         return $errors;
     }
+
+    public function data_preprocessing(&$default_values) {
+
+        $customtext = $default_values['customtext']; // Store the original value.
+
+        $default_values['customtext'] = array(); // Convert customtext into an array.
+        $default_values['customtext']['text'] = $customtext; // Add the text array key and set its value to the db text value
+
+    }
 }

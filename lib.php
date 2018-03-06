@@ -37,6 +37,8 @@ function certificate_add_instance($certificate) {
     // Create the certificate.
     $certificate->timecreated = time();
     $certificate->timemodified = $certificate->timecreated;
+    $certificate->customtext = $certificate->customtext['text']; 
+
 
     return $DB->insert_record('certificate', $certificate);
 }
@@ -53,8 +55,10 @@ function certificate_update_instance($certificate) {
     // Update the certificate.
     $certificate->timemodified = time();
     $certificate->id = $certificate->instance;
+    $certificate->customtext = $certificate->customtext['text']; 
 
     return $DB->update_record('certificate', $certificate);
+
 }
 
 /**
